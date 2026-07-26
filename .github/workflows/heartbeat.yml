@@ -1,0 +1,17 @@
+name: Heartbeat - Publish Scheduled Posts
+
+on:
+  schedule:
+    # Runs every 6 hours (UTC)
+    - cron: "0 */6 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  heartbeat:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call heartbeat endpoint
+        run: |
+          curl -sf -X POST "${{ secrets.APP_URL }}/api/heartbeat" \
+            -H "x-heartbeat-secret: ${{ secrets.HEARTBEAT_SECRET }}" \
+            -H "Content-Type: application/json"

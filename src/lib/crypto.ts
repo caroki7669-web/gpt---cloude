@@ -1,0 +1,28 @@
+import crypto from "crypto";
+
+// Simple AES-256-GCM helper so Facebook Page Access Tokens are never stored in plaintext
+// in the database. AUTH_SECRET is hashed down to a 32-byte key.
+
+function getKey() {
+  const secret = process.env.AUTH_SECRET;
+  if (!secret) throw new Error("AUTH_SECRET is not set");
+  return crypto.createHash("sha256").update(secret).digest();
+}
+
+export function encryptToken(plainText: string): string {
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv("aes-256-gcm", getKey(), iv);
+  const encrypted = Buffer.concat([cipher.update(plainText, "utf8"), cipher.final()]);
+  const authTag = cipher.getAuthTag();
+  return Buffer.concat([iv, authTag, encrypted]).toString("base64");
+}
+
+export function decryptToken(payload: string): string {
+  const raw = Buffer.from(payload, "base64");
+  const iv = raw.subarray(0, 12);
+  const authTag = raw.subarray(12, 28);
+  const encrypted = raw.subarray(28);
+  const decipher = crypto.createDecipheriv("aes-256-gcm", getKey(), iv);
+  decipher.setAuthTag(authTag);
+  return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString("utf8");
+}
