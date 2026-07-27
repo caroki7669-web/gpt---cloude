@@ -18,5 +18,9 @@ if (!process.env.DATABASE_URL && process.env.NODE_ENV !== "test") {
   );
 }
 
-const client = postgres(connectionString, { max: 1 });
+// `prepare: false` is required when connecting through Neon's pooled
+// endpoint (hostnames containing "-pooler"), which uses PgBouncer in
+// transaction mode. PgBouncer doesn't support named prepared statements
+// across pooled connections, so leaving this on causes queries to fail.
+const client = postgres(connectionString, { max: 1, prepare: false });
 export const db = drizzle(client, { schema });
